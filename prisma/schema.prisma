@@ -1,0 +1,322 @@
+datasource db {
+  provider = "mongodb"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+enum UserRole {
+  USER
+  ADMIN
+}
+
+enum ProductUnit {
+  KG
+  PIECE
+}
+
+enum ProductSaleType {
+  NORMAL
+  WEIGHT_RANGE
+}
+
+enum DiscountType {
+  COUPON
+  ALL_CUSTOMERS
+  REGISTERED_ONLY
+}
+
+enum DiscountValueType {
+  PERCENTAGE
+  FIXED
+}
+
+enum DiscountSource {
+  COUPON
+  ALL_CUSTOMERS
+  REGISTERED_ONLY
+}
+
+enum OrderStatus {
+  PENDING
+  CONFIRMED
+  PREPARING
+  OUT_FOR_DELIVERY
+  DELIVERED
+  CANCELLED
+}
+
+enum PaymentMethod {
+  CASH_ON_DELIVERY
+}
+
+enum ReturnStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  REFUNDED
+}
+
+model User {
+  id String @id @default(auto()) @map("_id") @db.ObjectId
+
+  fName String
+  lName String
+
+  phone String @unique
+  email String @unique
+
+  password String
+
+  role UserRole @default(USER)
+
+  orders Order[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Category {
+  id        String     @id @default(auto()) @map("_id") @db.ObjectId
+  title     String
+  desc      String?
+  image     String?
+
+  parentId  String?    @db.ObjectId
+  parent    Category?  @relation("CategoryHierarchy", fields: [parentId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  children  Category[] @relation("CategoryHierarchy")
+
+  products  Product[]
+
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+}
+
+model Product {
+  id String @id @default(auto()) @map("_id") @db.ObjectId
+
+  title String
+  desc String?
+  image String?
+
+  price Float
+  discountPrice Float?
+  discountValueType DiscountValueType?
+  discountValue Float?
+
+  unit ProductUnit
+
+  saleType ProductSaleType @default(NORMAL)
+
+  weightOptions ProductWeightOption[]
+
+  categoryId String? @db.ObjectId
+  category Category? @relation(fields: [categoryId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model ProductWeightOption {
+  id String @id @default(auto()) @map("_id") @db.ObjectId
+
+  productId String @db.ObjectId
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  name String
+
+  minWeight Float
+  maxWeight Float
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model DeliveryZone {
+  id String @id @default(auto()) @map("_id") @db.ObjectId
+
+  title String
+  cost  Float?
+
+  isActive Boolean @default(true)
+
+  parentId String?        @db.ObjectId
+  parent   DeliveryZone?  @relation("DeliveryZoneHierarchy", fields: [parentId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  children DeliveryZone[] @relation("DeliveryZoneHierarchy")
+
+  orders Order[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Discount {
+  id String @id @default(auto()) @map("_id") @db.ObjectId
+
+  type DiscountType
+
+  code String? @unique
+
+  valueType DiscountValueType
+  value     Float
+
+  minOrderAmount    Float?
+  maxDiscountAmount Float?
+
+  usageLimit Int?
+  usageCount Int @default(0)
+
+  startDate DateTime?
+  endDate   DateTime?
+
+  isActive Boolean @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+
+
+model Order {
+  id String @id @default(auto()) @map("_id") @db.ObjectId
+
+  orderNumber Int @unique
+
+  userId String? @db.ObjectId
+  user   User?   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  customerName  String
+  customerPhone String
+  customerEmail String?
+
+  items OrderItem[]
+
+  returns OrderReturn[]
+
+  statusHistory OrderStatusHistory[]
+
+  deliveryZoneId    String?       @db.ObjectId
+  deliveryZone      DeliveryZone? @relation(fields: [deliveryZoneId], references: [id])
+  deliveryZoneTitle String
+  deliveryFee       Float
+
+  addressLine String
+  notes       String?
+
+  subtotal              Float
+  productsDiscount      Float           @default(0)
+  couponCode            String?
+  discountAmount        Float           @default(0)
+  appliedDiscountSource DiscountSource?
+  total                 Float
+
+  refundedAmount Float @default(0)
+
+  paymentMethod PaymentMethod @default(CASH_ON_DELIVERY)
+
+  status OrderStatus @default(PENDING)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model OrderStatusHistory {
+  id String @id @default(auto()) @map("_id") @db.ObjectId
+
+  orderId String @db.ObjectId
+  order   Order  @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  status OrderStatus
+
+  createdAt DateTime @default(now())
+}
+
+model OrderItem {
+  id String @id @default(auto()) @map("_id") @db.ObjectId
+
+  orderId String @db.ObjectId
+  order   Order  @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  productId String
+
+  title String
+  image String?
+  unit  ProductUnit
+  price Float
+
+  qty Float
+
+  weightOptionId   String?
+  weightOptionName String?
+  isApprox         Boolean @default(false)
+
+  minWeight Float?
+  maxWeight Float?
+
+  minTotal Float?
+  maxTotal Float?
+
+  actualWeight Float?
+  weightConfirmed Boolean @default(false)
+
+  total Float
+
+  returnedQty Float @default(0)
+
+  returnItems OrderReturnItem[]
+
+  createdAt DateTime @default(now())
+}
+
+model OrderReturn {
+  id String @id @default(auto()) @map("_id") @db.ObjectId
+
+  orderId String @db.ObjectId
+  order   Order  @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  items OrderReturnItem[]
+
+  reason String
+  refundAmount Float
+
+  status ReturnStatus @default(PENDING)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model OrderReturnItem {
+  id String @id @default(auto()) @map("_id") @db.ObjectId
+
+  returnId String      @db.ObjectId
+  return   OrderReturn @relation(fields: [returnId], references: [id], onDelete: Cascade)
+
+  orderItemId String    @db.ObjectId
+  orderItem   OrderItem @relation(fields: [orderItemId], references: [id])
+
+  qty    Float
+  amount Float
+}
+
+model SiteSeoSettings {
+  id String @id @default(auto()) @map("_id") @db.ObjectId
+
+  siteTitle       String
+  siteDescription String
+  keywords        String[]
+  ogImage         String?
+
+  updatedAt DateTime @updatedAt
+}
+
+model PageView {
+  id       String   @id @default(auto()) @map("_id") @db.ObjectId
+  path     String
+  ipHash   String
+  dateKey  String
+  viewedAt DateTime @default(now())
+
+  @@unique([path, ipHash, dateKey])
+}

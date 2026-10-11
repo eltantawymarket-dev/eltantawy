@@ -1,0 +1,118 @@
+"use client";
+
+import { Form } from "@/components/form";
+import { Input } from "@/components/input";
+import { Button } from "@/components/button";
+import { useToast } from "@/components/toaster";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useRouter } from "next/navigation";
+import { useState } from "react";
+import { LoadingImage as Image } from "@/components/loading-image";
+import Link from "next/link";
+
+import { loginSchema } from "./schema";
+import { LoginForm } from "./types";
+import { useAuth } from "@/context/AuthContext";
+
+const FormLogin = () => {
+  const router = useRouter();
+  const { setUser } = useAuth();
+  const { toast } = useToast();
+
+  const [isLoading, setIsLoading] = useState(false);
+
+  const handleSubmit = async (data: LoginForm) => {
+    try {
+      setIsLoading(true);
+
+      const response = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(data),
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        toast.error("رقم الهاتف أو كلمة المرور غير صحيحة.");
+        return;
+      }
+
+      setUser(result.user);
+
+      toast.success("تم تسجيل الدخول بنجاح.");
+
+      router.push("/");
+    } catch (error) {
+      console.error("Login error:", error);
+
+      toast.error("حدث خطأ أثناء تسجيل الدخول، يرجى المحاولة مرة أخرى.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  return (
+    <Form<LoginForm>
+      onSubmit={handleSubmit}
+      resolver={zodResolver(loginSchema)}
+      className="flex w-full max-w-xl flex-col gap-4 border border-background-second/60 bg-background p-4 shadow-sm"
+    >
+      <div className="flex w-full items-center justify-center border-b-2 border-b-main/30 pb-4 lg:hidden">
+        <Image
+          src="/logo-alt.png"
+          alt="الطنطاوي"
+          width={300}
+          height={300}
+          className="h-auto max-w-full"
+          priority
+        />
+      </div>
+
+      <div className="flex flex-col gap-2 text-center">
+        <h1 className="text-2xl font-bold text-foreground">تسجيل الدخول</h1>
+
+        <p className="text-sm text-muted-foreground">
+          سجل الدخول إلى حسابك واستمتع بالخصومات
+        </p>
+      </div>
+
+      <div className="flex flex-col gap-5">
+        <Input<LoginForm>
+          name="phone"
+          label="رقم الهاتف"
+          type="tel"
+          showIconLabel
+          placeholder="01xxxxxxxxx"
+        />
+
+        <Input<LoginForm>
+          name="password"
+          label="كلمة المرور"
+          type="password"
+          showIconLabel
+          placeholder="أدخل كلمة المرور"
+        />
+      </div>
+
+      <Button type="submit" color="MAIN" size="lg" loading={isLoading}>
+        {isLoading ? "جاري تسجيل الدخول..." : "تسجيل الدخول"}
+      </Button>
+
+      <div className="flex items-center justify-center gap-1 text-sm">
+        <span className="text-muted-foreground">ليس لديك حساب؟</span>
+
+        <Link
+          href="/register"
+          className="font-medium text-main hover:underline"
+        >
+          إنشاء حساب جديد
+        </Link>
+      </div>
+    </Form>
+  );
+};
+
+export default FormLogin;

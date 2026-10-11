@@ -1,0 +1,107 @@
+"use client";
+
+import { lazy, Suspense } from "react";
+import Link from "next/link";
+import { Package, ShoppingCart } from "lucide-react";
+import { LoadingImage as Image } from "@/components/loading-image";
+
+import { Button } from "@/components/button";
+import { Card } from "@/components/card";
+import { ProductCardProps } from "./types";
+import ProductPrice from "./ProductPrice";
+import { useDialog } from "@/components/dialog";
+import { Tooltip } from "@/components/tooltip";
+
+const AddToCartDialog = lazy(() => import("../cart/AddToCartDialog"));
+
+const ProductCard = ({ product, className = "" }: ProductCardProps) => {
+  const { openDialog } = useDialog();
+
+  const unitLabel = product.unit === "KG" ? "كيلو" : "قطعة";
+
+  return (
+    <Card
+      className={`group relative flex flex-col overflow-hidden transition-all duration-300 hover:-translate-y-0.5 hover:border-main/20 hover:shadow-sm ${className}`}
+    >
+      <div className="relative aspect-square w-full overflow-hidden bg-muted">
+        <Link
+          href={`/products/${product.id}`}
+          aria-label={product.title}
+          className="absolute inset-0 z-0"
+        >
+          {product.image ? (
+            <Image
+              src={product.image}
+              alt={product.title}
+              fill
+              sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
+              className="object-cover transition-transform duration-500 group-hover:scale-105"
+            />
+          ) : (
+            <div className="flex size-full items-center justify-center text-main/60">
+              <Package className="size-12" />
+            </div>
+          )}
+        </Link>
+
+        {product.discountPrice !== null &&
+          product.discountPrice < product.price && (
+            <span className="pointer-events-none absolute right-2 top-2 z-10 bg-main px-2 py-1 text-xs font-semibold text-main-foreground">
+              خصم
+            </span>
+          )}
+
+        <Tooltip
+          content="إضافة إلى السلة"
+          focusable={false}
+        >
+          <Button
+            type="button"
+            className="absolute bottom-2 left-2 z-10 flex size-7 items-center justify-center backdrop-blur-sm transition-all duration-200 lg:size-8"
+            size="icon"
+            color="SUCCESS"
+            variant="soft"
+            onClick={() =>
+              openDialog({
+                title: "إضافة إلى السلة",
+                size: "md",
+                children: (
+                  <Suspense fallback={<p>جارٍ تحميل تفاصيل المنتج...</p>}>
+                    <AddToCartDialog product={product} />
+                  </Suspense>
+                ),
+              })
+            }
+            aria-label="إضافة إلى السلة"
+          >
+            <ShoppingCart
+              aria-hidden="true"
+              className="size-4 animate-cart-attention"
+            />
+          </Button>
+        </Tooltip>
+      </div>
+
+      <Link
+        href={`/products/${product.id}`}
+        className="flex flex-1 flex-col gap-1 p-2 lg:gap-2 lg:p-3"
+      >
+        <div className="min-w-0 flex flex-col gap-0.5 lg:gap-1.5">
+          <h3 className="text-base font-semibold transition-colors group-hover:text-main lg:text-lg">
+            {product.title}
+          </h3>
+          <span className="block text-xs text-muted-foreground">
+            {unitLabel}
+          </span>
+        </div>
+
+        <ProductPrice
+          price={product.price}
+          discountPrice={product.discountPrice}
+        />
+      </Link>
+    </Card>
+  );
+};
+
+export default ProductCard;

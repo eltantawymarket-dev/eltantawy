@@ -1,0 +1,130 @@
+"use client";
+
+import Link from "next/link";
+import { Eye, Pen } from "lucide-react";
+
+import { Button } from "@/components/button";
+import { Skeleton } from "@/components/skeleton";
+import { Tag } from "@/components/tag";
+import { Tooltip } from "@/components/tooltip";
+import { TableColumn } from "@/components/table/types";
+import { toArabicNums } from "@/utils/toArabicNums";
+
+import { Product } from "./types";
+import { DeleteProductButton } from "./deleteProduct";
+
+export const productsTableColumns: TableColumn<Product>[] = [
+  {
+    key: "title",
+    title: "المنتج",
+    render: (product) => <span className="font-medium">{product.title}</span>,
+  },
+
+  {
+    key: "category",
+    title: "التصنيف",
+    render: (product) => <span>{product.category?.title || "بدون تصنيف"}</span>,
+  },
+
+  {
+    key: "price",
+    title: <div className="flex justify-center">السعر</div>,
+    sortKey: "price",
+    defaultSortDirection: "desc",
+    render: (product) => (
+      <span className="flex justify-center font-medium">
+        {toArabicNums(String(product.price))} ج.م
+      </span>
+    ),
+  },
+
+  {
+    key: "discountPrice",
+    title: <div className="flex justify-center">سعر الخصم</div>,
+    sortKey: "discountPrice",
+    defaultSortDirection: "desc",
+    render: (product) => (
+      <span className="flex justify-center font-medium">
+        {product.discountPrice !== null
+          ? `${toArabicNums(String(product.discountPrice))} ج.م`
+          : "—"}
+      </span>
+    ),
+  },
+
+  {
+    key: "unit",
+    title: <div className="flex justify-center">الوحدة</div>,
+    skeleton: (
+      <div className="flex justify-center">
+        <Skeleton width={42} height={18} className="rounded-full" />
+      </div>
+    ),
+    render: (product) => (
+      <div className="flex justify-center">
+        <Tag color="INFO" size="sm">
+          {product.unit === "KG" ? "كيلو" : "قطعة"}
+        </Tag>
+      </div>
+    ),
+  },
+
+  {
+    key: "saleType",
+    title: <div className="flex justify-center">نوع البيع</div>,
+    skeleton: (
+      <div className="flex justify-center">
+        <Skeleton width={66} height={18} className="rounded-full" />
+      </div>
+    ),
+    render: (product) => (
+      <div className="flex justify-center">
+        <Tag
+          color={product.saleType === "WEIGHT_RANGE" ? "WARNING" : "SUCCESS"}
+          size="sm"
+        >
+          {product.saleType === "WEIGHT_RANGE" ? "نطاق وزن" : "عادي"}
+        </Tag>
+      </div>
+    ),
+  },
+
+  {
+    key: "createdAt",
+    title: <div className="flex justify-end">تاريخ الإنشاء</div>,
+    render: (product) => (
+      <span className="flex justify-end">
+        {new Date(product.createdAt).toLocaleDateString("ar-EG")}
+      </span>
+    ),
+  },
+
+  {
+    key: "options",
+    title: <div className="flex justify-center">التحكم</div>,
+    render: (product) => (
+      <div className="flex justify-center gap-1">
+        <Link href={`/admin/products/${product.id}`} aria-label="عرض المنتج">
+          <Tooltip content="عرض المنتج" focusable={false}>
+            <Button size="icon" color="NEUTRAL" variant="outline">
+              <Eye aria-hidden="true" className="size-4 lg:size-5" />
+            </Button>
+          </Tooltip>
+        </Link>
+
+        <Link
+          href={`/admin/products/${product.id}/edit`}
+          aria-label="تعديل المنتج"
+        >
+          <Tooltip content="تعديل المنتج" focusable={false}>
+            <Button size="icon" color="INFO" variant="soft">
+              <Pen aria-hidden="true" className="size-4 lg:size-5" />
+            </Button>
+          </Tooltip>
+        </Link>
+
+        <DeleteProductButton id={product.id} />
+      </div>
+    ),
+  },
+];

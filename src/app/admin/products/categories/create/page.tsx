@@ -1,0 +1,37 @@
+import { Breadcrumb } from "@/components/breadcrumb";
+import { Create } from "@/features/admin/categories/create";
+import { getCategoriesForParentSelect } from "@/features/admin/categories/table";
+
+const CreateCategory = async () => {
+  const categories = await getCategoriesForParentSelect();
+
+  return (
+    <div className="flex flex-col gap-3 lg:gap-4">
+      <Breadcrumb
+        items={[
+          {
+            label: "التصنيفات",
+            href: "/admin/products/categories",
+          },
+          {
+            label: "إنشاء تصنيف",
+          },
+        ]}
+      />
+
+      <div>
+        <h1 className="text-2xl font-bold">إنشاء تصنيف</h1>
+
+        <p className="mt-1 text-sm text-muted-foreground">
+          إضافة تصنيف جديد للمنتجات
+        </p>
+      </div>
+
+      <div className="border border-background-second bg-background p-3 md:p-4 lg:p-6 shadow-sm">
+        <Create categories={categories} />
+      </div>
+    </div>
+  );
+};
+
+export default CreateCategory;
